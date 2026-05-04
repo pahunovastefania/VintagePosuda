@@ -108,10 +108,11 @@ article.content {
     min-width: 0;
 }
 
-.footer-brand img {
+.footer-logo {
     width: 2.4rem;
     height: 2.4rem;
     flex: 0 0 auto;
+    object-fit: contain;
 }
 
 .footer-title {
