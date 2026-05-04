@@ -15,7 +15,7 @@
 
 <div class="card mb-4">
     <div class="card-body">
-        <div class="row g-2 align-items-end">
+        <form class="row g-2 align-items-end" @onsubmit="SearchAsync" @onsubmit:preventDefault="true">
             <div class="col-md-3">
                 <label class="form-label small mb-1">Название</label>
                 <input class="form-control"
@@ -44,10 +44,10 @@
                 </select>
             </div>
             <div class="col-md-2 d-flex gap-2">
-                <button class="btn btn-primary flex-grow-1" @onclick="SearchAsync">Найти</button>
-                <button class="btn btn-outline-secondary" @onclick="ResetAsync" title="Сбросить">×</button>
+                <button type="submit" class="btn btn-primary flex-grow-1">Найти</button>
+                <button type="button" class="btn btn-outline-secondary" @onclick="ResetAsync" title="Сбросить">×</button>
             </div>
-        </div>
+        </form>
     </div>
 </div>
 

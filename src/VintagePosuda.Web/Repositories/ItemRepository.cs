@@ -18,18 +18,6 @@ public class ItemRepository : Repository<Item>, IItemRepository
             .Include(x => x.Category)
             .Include(x => x.Material);
 
-        if (!string.IsNullOrWhiteSpace(query.NameContains))
-        {
-            string pattern = $"%{query.NameContains.Trim()}%";
-            q = q.Where(x => EF.Functions.Like(x.Name, pattern));
-        }
-
-        if (!string.IsNullOrWhiteSpace(query.ManufacturerContains))
-        {
-            string pattern = $"%{query.ManufacturerContains.Trim()}%";
-            q = q.Where(x => x.Manufacturer != null && EF.Functions.Like(x.Manufacturer.Name, pattern));
-        }
-
         if (query.Year is not null)
         {
             q = q.Where(x => x.Year == query.Year);
@@ -50,8 +38,35 @@ public class ItemRepository : Repository<Item>, IItemRepository
             q = q.Where(x => x.CategoryId == query.CategoryId);
         }
 
-        return await q.OrderByDescending(x => x.CreatedAt).ToListAsync(ct);
+        var items = await q.OrderByDescending(x => x.CreatedAt).ToListAsync(ct);
+
+        if (!string.IsNullOrWhiteSpace(query.NameContains))
+        {
+            string[] terms = SplitSearchTerms(query.NameContains);
+            items = items
+                .Where(x => ContainsAllTerms(x.Name, terms))
+                .ToList();
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.ManufacturerContains))
+        {
+            string[] terms = SplitSearchTerms(query.ManufacturerContains);
+            items = items
+                .Where(x => x.Manufacturer is not null && ContainsAllTerms(x.Manufacturer.Name, terms))
+                .ToList();
+        }
+
+        return items;
     }
+
+    private static string[] SplitSearchTerms(string value)
+        => value
+            .Trim()
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+    private static bool ContainsAllTerms(string value, IEnumerable<string> terms)
+        => terms.All(term => value.Contains(term, StringComparison.CurrentCultureIgnoreCase));
+
     public async Task<Item?> GetWithDetailsAsync(int id, CancellationToken ct = default)
     {
         return await Set

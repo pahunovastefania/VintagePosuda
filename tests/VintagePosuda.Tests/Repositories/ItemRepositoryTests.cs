@@ -27,11 +27,63 @@ public class ItemRepositoryTests : IDisposable
     }
 
     [Fact]
+    public async Task SearchAsync_ByFirstWordInName_ReturnsMatching()
+    {
+        AddArchivedSaladBowl();
+
+        var result = await _sut.SearchAsync(new SearchQuery { NameContains = "Салатник" });
+
+        result.Should().ContainSingle().Which.Name.Should().Be("Салатник Rosenthal с платиновым кантом");
+    }
+
+    [Fact]
+    public async Task SearchAsync_ByNameContains_IgnoresCyrillicCase()
+    {
+        AddArchivedSaladBowl();
+
+        var result = await _sut.SearchAsync(new SearchQuery { NameContains = "салатник" });
+
+        result.Should().ContainSingle().Which.Name.Should().Be("Салатник Rosenthal с платиновым кантом");
+    }
+
+    [Fact]
+    public async Task SearchAsync_BySeveralNameTerms_ReturnsMatching()
+    {
+        AddArchivedSaladBowl();
+
+        var result = await _sut.SearchAsync(new SearchQuery { NameContains = "салатник платиновым" });
+
+        result.Should().ContainSingle().Which.Name.Should().Be("Салатник Rosenthal с платиновым кантом");
+    }
+
+    [Fact]
+    public async Task SearchAsync_ByNameAndWrongStatus_ReturnsEmpty()
+    {
+        AddArchivedSaladBowl();
+
+        var result = await _sut.SearchAsync(new SearchQuery
+        {
+            NameContains = "Салатник",
+            Status = ItemStatus.InStock,
+        });
+
+        result.Should().BeEmpty();
+    }
+
+    [Fact]
     public async Task SearchAsync_ByManufacturerContains_FiltersByName()
     {
         var result = await _sut.SearchAsync(new SearchQuery { ManufacturerContains = "ЛФЗ" });
         result.Should().HaveCount(2);
         result.Should().OnlyContain(x => x.Manufacturer!.Name == "ЛФЗ");
+    }
+
+    [Fact]
+    public async Task SearchAsync_ByManufacturerContains_IgnoresCase()
+    {
+        var result = await _sut.SearchAsync(new SearchQuery { ManufacturerContains = "meissen" });
+
+        result.Should().ContainSingle().Which.Manufacturer!.Name.Should().Be("Meissen");
     }
 
     [Fact]
@@ -123,6 +175,34 @@ public class ItemRepositoryTests : IDisposable
         bool deleted = await _sut.DeleteAsync(99999);
         deleted.Should().BeFalse();
     }
+
+    private void AddArchivedSaladBowl()
+    {
+        var manufacturer = new Manufacturer { Name = "Rosenthal", Country = "Германия", FoundedYear = 1879 };
+        var category = new Category { Name = "Салатник" };
+        var material = _db.Materials.First();
+
+        _db.AddRange(manufacturer, category);
+        _db.SaveChanges();
+
+        _db.Items.Add(new Item
+        {
+            Name = "Салатник Rosenthal с платиновым кантом",
+            Year = 1984,
+            Price = 6400m,
+            Status = ItemStatus.Archived,
+            ManufacturerId = manufacturer.Id,
+            CategoryId = category.Id,
+            MaterialId = material.Id,
+            Details = new ItemDetails
+            {
+                Condition = "Fair",
+                Defects = "Следы хранения на внутренней поверхности",
+            },
+        });
+        _db.SaveChanges();
+    }
+
     public void Dispose()
     {
         _db.Dispose();
