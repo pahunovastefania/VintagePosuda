@@ -1,0 +1,31 @@
+<!--
+    Минимальный Layout для Razor Pages, обслуживающих страницы Identity
+    (Login, Register). Имеет тот же стиль, что и Blazor-часть приложения,
+    чтобы переход между ними не был резким.
+-->
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] · Магазин винтажной посуды</title>
+    <link rel="stylesheet" href="~/bootstrap/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/app.css" />
+</head>
+<body>
+    <header class="bg-dark text-white py-3 mb-4">
+        <div class="container d-flex justify-content-between align-items-center">
+            <a class="navbar-brand text-white text-decoration-none fs-4" href="/">
+                Магазин винтажной посуды
+            </a>
+            <a class="text-white" href="/">На главную</a>
+        </div>
+    </header>
+    <main class="container">
+        @RenderBody()
+    </main>
+    <footer class="container mt-5 pt-4 border-top text-muted small">
+        <p>Курсовая работа &middot; ASP.NET Core 8 + Blazor Server</p>
+    </footer>
+</body>
+</html>

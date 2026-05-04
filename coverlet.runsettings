@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RunSettings>
+  <DataCollectionRunSettings>
+    <DataCollectors>
+      <DataCollector friendlyName="XPlat Code Coverage">
+        <Configuration>
+          <Format>cobertura</Format>
+          <Include>[VintagePosuda.Web]VintagePosuda.Web.Services.ItemService,[VintagePosuda.Web]VintagePosuda.Web.Services.ReportService,[VintagePosuda.Web]VintagePosuda.Web.Repositories.ItemRepository,[VintagePosuda.Web]VintagePosuda.Web.Validators.ItemValidator</Include>
+          <ExcludeByFile>**/Data/Migrations/*.cs,**/Components/**/*.razor,**/Pages/**/*.cshtml.cs,**/Program.cs</ExcludeByFile>
+        </Configuration>
+      </DataCollector>
+    </DataCollectors>
+  </DataCollectionRunSettings>
+</RunSettings>

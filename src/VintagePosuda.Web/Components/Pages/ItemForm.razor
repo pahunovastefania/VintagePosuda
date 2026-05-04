@@ -1,0 +1,259 @@
+@page "/items/new"
+@page "/items/{Id:int}/edit"
+@rendermode InteractiveServer
+@attribute [Authorize]
+@using Blazored.FluentValidation
+@using VintagePosuda.Web.Models
+@using VintagePosuda.Web.Services
+@inject IItemService Items
+@inject IManufacturerService Manufacturers
+@inject ICategoryService Categories
+@inject IMaterialService Materials
+@inject ITagService Tags
+@inject NavigationManager Nav
+
+<PageTitle>@(IsEdit ? "Редактирование" : "Новый предмет") · Магазин винтажной посуды</PageTitle>
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/">Каталог</a></li>
+        @if (IsEdit && _model is not null)
+        {
+            <li class="breadcrumb-item"><a href="@($"/items/{Id}")">@_model.Name</a></li>
+            <li class="breadcrumb-item active">Редактирование</li>
+        }
+        else
+        {
+            <li class="breadcrumb-item active">Новый предмет</li>
+        }
+    </ol>
+</nav>
+
+<h1>@(IsEdit ? "Редактирование предмета" : "Новый предмет")</h1>
+
+@if (_loading)
+{
+    <p class="text-muted">Загрузка...</p>
+}
+else if (_model is null)
+{
+    <div class="alert alert-warning">Предмет не найден.</div>
+}
+else
+{
+    <EditForm Model="_model" OnValidSubmit="SubmitAsync">
+        <FluentValidationValidator />
+        <ValidationSummary class="text-danger" />
+
+        <div class="row g-3">
+            <div class="col-md-8">
+                <label class="form-label">Название</label>
+                <InputText class="form-control" @bind-Value="_model.Name" />
+                <ValidationMessage For="() => _model.Name" class="text-danger small" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Год</label>
+                <InputNumber class="form-control" @bind-Value="_model.Year" />
+                <ValidationMessage For="() => _model.Year" class="text-danger small" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Цена, ₽</label>
+                <InputNumber class="form-control" @bind-Value="_model.Price" />
+                <ValidationMessage For="() => _model.Price" class="text-danger small" />
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label">Завод</label>
+                <InputSelect class="form-select" @bind-Value="_model.ManufacturerId">
+                    <option value="0">— выберите —</option>
+                    @foreach (var m in _manufacturers)
+                    {
+                        <option value="@m.Id">@m.Name</option>
+                    }
+                </InputSelect>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Категория</label>
+                <InputSelect class="form-select" @bind-Value="_model.CategoryId">
+                    <option value="0">— выберите —</option>
+                    @foreach (var c in _categories)
+                    {
+                        <option value="@c.Id">@c.Name</option>
+                    }
+                </InputSelect>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Материал</label>
+                <InputSelect class="form-select" @bind-Value="_model.MaterialId">
+                    <option value="0">— выберите —</option>
+                    @foreach (var m in _materials)
+                    {
+                        <option value="@m.Id">@m.Name</option>
+                    }
+                </InputSelect>
+            </div>
+
+            <div class="col-12">
+                <label class="form-label">Описание</label>
+                <InputTextArea class="form-control" rows="3" @bind-Value="_model.Description" />
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Происхождение</label>
+                <InputText class="form-control" @bind-Value="_model.Details!.Origin" />
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Состояние</label>
+                <InputSelect class="form-select" @bind-Value="_model.Details!.Condition">
+                    <option>Excellent</option>
+                    <option>Good</option>
+                    <option>Fair</option>
+                    <option>Poor</option>
+                </InputSelect>
+            </div>
+            <div class="col-12">
+                <label class="form-label">История (provenance)</label>
+                <InputTextArea class="form-control" rows="2" @bind-Value="_model.Details!.Provenance" />
+            </div>
+            <div class="col-12">
+                <label class="form-label">Дефекты</label>
+                <InputTextArea class="form-control" rows="2" @bind-Value="_model.Details!.Defects" />
+            </div>
+
+            <div class="col-12">
+                <label class="form-label">Теги</label>
+                <div>
+                    @foreach (var tag in _allTags)
+                    {
+                        var id = tag.Id;
+                        var checkedNow = _selectedTagIds.Contains(id);
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="checkbox" id="@($"tag-{id}")"
+                                   checked="@checkedNow"
+                                   @onchange="(e) => ToggleTag(id, (bool)e.Value!)" />
+                            <label class="form-check-label" for="@($"tag-{id}")">@tag.Name</label>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrEmpty(_error))
+        {
+            <div class="alert alert-danger mt-3">@_error</div>
+        }
+
+        <div class="mt-4 d-flex gap-2">
+            <button type="submit" class="btn btn-primary" disabled="@_saving">
+                @(_saving ? "Сохранение..." : (IsEdit ? "Сохранить" : "Создать"))
+            </button>
+            <button type="button" class="btn btn-outline-secondary" @onclick="Cancel">Отмена</button>
+        </div>
+    </EditForm>
+}
+
+@code {
+    [Parameter] public int? Id { get; set; }
+
+    private Item? _model;
+    private bool _loading = true;
+    private bool _saving;
+    private string? _error;
+
+    private IReadOnlyList<Manufacturer> _manufacturers = Array.Empty<Manufacturer>();
+    private IReadOnlyList<Category> _categories = Array.Empty<Category>();
+    private IReadOnlyList<Material> _materials = Array.Empty<Material>();
+    private IReadOnlyList<Tag> _allTags = Array.Empty<Tag>();
+    private HashSet<int> _selectedTagIds = new();
+
+    private bool IsEdit => Id is not null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _manufacturers = await Manufacturers.GetAllAsync();
+        _categories = await Categories.GetAllAsync();
+        _materials = await Materials.GetAllAsync();
+        _allTags = await Tags.GetAllAsync();
+
+        if (IsEdit)
+        {
+            var existing = await Items.GetByIdAsync(Id!.Value);
+            if (existing is not null)
+            {
+                _model = existing;
+                _model.Details ??= new ItemDetails { ItemId = existing.Id };
+                _selectedTagIds = existing.ItemTags.Select(x => x.TagId).ToHashSet();
+            }
+        }
+        else
+        {
+            _model = new Item
+            {
+                Status = ItemStatus.InStock,
+                Details = new ItemDetails(),
+            };
+        }
+
+        _loading = false;
+    }
+
+    private void ToggleTag(int tagId, bool isChecked)
+    {
+        if (isChecked)
+        {
+            _selectedTagIds.Add(tagId);
+        }
+        else
+        {
+            _selectedTagIds.Remove(tagId);
+        }
+    }
+
+    private async Task SubmitAsync()
+    {
+        _error = null;
+
+        if (_model!.ManufacturerId == 0 || _model.CategoryId == 0 || _model.MaterialId == 0)
+        {
+            _error = "Выберите завод, категорию и материал.";
+            return;
+        }
+
+        _saving = true;
+        try
+        {
+            int id;
+            if (IsEdit)
+            {
+                await Items.UpdateAsync(_model, _selectedTagIds);
+                id = _model.Id;
+            }
+            else
+            {
+                id = await Items.CreateAsync(_model, _selectedTagIds);
+            }
+
+            Nav.NavigateTo($"/items/{id}");
+        }
+        catch (Exception ex)
+        {
+            _error = "Не удалось сохранить: " + ex.Message;
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private void Cancel()
+    {
+        if (IsEdit)
+        {
+            Nav.NavigateTo($"/items/{Id}");
+        }
+        else
+        {
+            Nav.NavigateTo("/");
+        }
+    }
+}

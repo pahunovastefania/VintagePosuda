@@ -1,0 +1,15 @@
+@*
+    Маршрутизатор Blazor. Заменён на AuthorizeRouteView — теперь страницы
+    с атрибутом [Authorize] показывают форму входа неавторизованным
+    пользователям, а не просто пустой экран.
+*@
+<Router AppAssembly="typeof(Program).Assembly">
+    <Found Context="routeData">
+        <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)">
+            <NotAuthorized>
+                <RedirectToLogin />
+            </NotAuthorized>
+        </AuthorizeRouteView>
+        <FocusOnNavigate RouteData="routeData" Selector="h1" />
+    </Found>
+</Router>

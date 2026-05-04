@@ -1,0 +1,57 @@
+@*
+    Универсальный модальный диалог подтверждения. Не использует JS —
+    видимость управляется через параметр Visible (двусторонний биндинг).
+    Стили — стандартные классы Bootstrap.
+*@
+@if (Visible)
+{
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal d-block" tabindex="-1" role="dialog" style="z-index: 1050;">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@Title</h5>
+                    <button type="button" class="btn-close" aria-label="Закрыть" @onclick="Cancel"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-0">@Body</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="Cancel">Отмена</button>
+                    <button type="button" class="btn @ConfirmCssClass" @onclick="ConfirmAsync">@ConfirmText</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public bool Visible { get; set; }
+    [Parameter]
+    public EventCallback<bool> VisibleChanged { get; set; }
+    [Parameter]
+    public string Title { get; set; } = "Подтверждение";
+    [Parameter]
+    public string Body { get; set; } = "Вы уверены?";
+    [Parameter]
+    public string ConfirmText { get; set; } = "Да";
+    [Parameter]
+    public string ConfirmCssClass { get; set; } = "btn-danger";
+    [Parameter]
+    public EventCallback OnConfirm { get; set; }
+
+    private async Task ConfirmAsync()
+    {
+        await OnConfirm.InvokeAsync();
+        await Hide();
+    }
+
+    private Task Cancel() => Hide();
+
+    private async Task Hide()
+    {
+        Visible = false;
+        await VisibleChanged.InvokeAsync(false);
+    }
+}

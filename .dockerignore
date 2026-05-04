@@ -1,0 +1,27 @@
+# Артефакты сборки .NET — внутри контейнера будет свой restore + publish.
+**/bin/
+**/obj/
+
+# Локальные базы и тестовые результаты.
+**/*.db
+**/*.db-journal
+**/TestResults/
+**/coverage*.xml
+**/coverage*.json
+
+# Папки IDE и метаданные.
+**/.vs/
+**/.idea/
+**/.vscode/
+
+# Папка планирования / документации (не нужна в image).
+.planning/
+.git/
+.gitignore
+.github/
+docs/
+
+# Сам Dockerfile в корне не нужен (build context включает src/).
+**/Dockerfile.*
+**/*.md
+README.md

@@ -1,0 +1,123 @@
+@page "/"
+@page "/catalog"
+@rendermode InteractiveServer
+@using VintagePosuda.Web.Models
+@using VintagePosuda.Web.Services
+@inject IItemService Items
+@inject NavigationManager Nav
+
+<PageTitle>Каталог · Магазин винтажной посуды</PageTitle>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="mb-0">Каталог винтажной посуды</h1>
+    <a class="btn btn-success" href="/items/new">+ Добавить предмет</a>
+</div>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label small mb-1">Название</label>
+                <input class="form-control"
+                       placeholder="например, Кобальт"
+                       @bind="_query.NameContains"
+                       @bind:event="oninput" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small mb-1">Завод-изготовитель</label>
+                <input class="form-control"
+                       placeholder="например, ЛФЗ"
+                       @bind="_query.ManufacturerContains"
+                       @bind:event="oninput" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small mb-1">Год выпуска</label>
+                <input type="number" class="form-control" @bind="_query.Year" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small mb-1">Статус</label>
+                <select class="form-select" @bind="StatusValue">
+                    <option value="">Все</option>
+                    <option value="InStock">В наличии</option>
+                    <option value="Sold">Продано</option>
+                    <option value="Archived">Архив</option>
+                </select>
+            </div>
+            <div class="col-md-2 d-flex gap-2">
+                <button class="btn btn-primary flex-grow-1" @onclick="SearchAsync">Найти</button>
+                <button class="btn btn-outline-secondary" @onclick="ResetAsync" title="Сбросить">×</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (_items is null)
+{
+    <p class="text-muted">Загрузка...</p>
+}
+else if (_items.Count == 0)
+{
+    <div class="alert alert-info">По заданным критериям ничего не найдено.</div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-striped align-middle">
+            <thead>
+                <tr>
+                    <th>Название</th>
+                    <th>Завод</th>
+                    <th>Категория</th>
+                    <th>Год</th>
+                    <th class="text-end">Цена, ₽</th>
+                    <th>Статус</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in _items)
+                {
+                    <tr>
+                        <td><a href="@($"/items/{item.Id}")" class="text-decoration-none">@item.Name</a></td>
+                        <td>@item.Manufacturer?.Name</td>
+                        <td>@item.Category?.Name</td>
+                        <td>@(item.Year?.ToString() ?? "—")</td>
+                        <td class="text-end">@item.Price.ToString("N2")</td>
+                        <td><StatusBadge Status="item.Status" /></td>
+                        <td class="text-end">
+                            <a class="btn btn-sm btn-outline-primary" href="@($"/items/{item.Id}/edit")">
+                                Изменить
+                            </a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    <p class="text-muted small">Найдено: <strong>@_items.Count</strong></p>
+}
+
+@code {
+    private SearchQuery _query = new();
+    private IReadOnlyList<Item>? _items;
+    private string StatusValue
+    {
+        get => _query.Status?.ToString() ?? string.Empty;
+        set => _query.Status = string.IsNullOrEmpty(value)
+            ? null
+            : Enum.Parse<ItemStatus>(value);
+    }
+
+    protected override async Task OnInitializedAsync() => await SearchAsync();
+
+    private async Task SearchAsync()
+    {
+        _items = await Items.SearchAsync(_query);
+    }
+
+    private async Task ResetAsync()
+    {
+        _query = new SearchQuery();
+        await SearchAsync();
+    }
+}

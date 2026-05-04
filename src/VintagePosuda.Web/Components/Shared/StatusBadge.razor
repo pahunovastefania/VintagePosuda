@@ -1,0 +1,27 @@
+@*
+    Бейдж со статусом предмета. Цвет и текст подбираются по значению ItemStatus.
+*@
+@using VintagePosuda.Web.Models
+
+<span class="badge @CssClass">@Text</span>
+
+@code {
+    [Parameter, EditorRequired]
+    public ItemStatus Status { get; set; }
+
+    private string CssClass => Status switch
+    {
+        ItemStatus.InStock => "bg-success",
+        ItemStatus.Sold => "bg-secondary",
+        ItemStatus.Archived => "bg-warning text-dark",
+        _ => "bg-light text-dark",
+    };
+
+    private string Text => Status switch
+    {
+        ItemStatus.InStock => "В наличии",
+        ItemStatus.Sold => "Продано",
+        ItemStatus.Archived => "Архив",
+        _ => Status.ToString(),
+    };
+}

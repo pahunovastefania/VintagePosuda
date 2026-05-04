@@ -1,0 +1,79 @@
+# =====================================================================
+# .gitignore для .NET / Visual Studio / Rider / VS Code проектов.
+# Источник правил — официальный шаблон GitHub для Visual Studio,
+# адаптирован под Blazor + EF Core + Docker.
+# =====================================================================
+
+# Артефакты сборки
+[Bb]in/
+[Oo]bj/
+[Oo]ut/
+[Ll]og/
+[Ll]ogs/
+
+# Visual Studio / Rider / VS Code
+.vs/
+.idea/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Файлы NuGet
+*.nupkg
+*.snupkg
+**/[Pp]ackages/*
+!**/[Pp]ackages/build/
+*.nuget.props
+*.nuget.targets
+
+# Результаты тестов и покрытия
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+*.coverage
+*.coveragexml
+coverage/
+*.trx
+
+# Сгенерированные файлы
+*.pdb
+*.dll
+*.exe
+*.cache
+*.tmp
+
+# Файлы окружения и секреты — НИКОГДА не коммитить
+*.env
+.env.local
+.env.*.local
+appsettings.*.Local.json
+secrets.json
+*.pfx
+*.key
+
+# SQLite базы данных (создаются миграциями)
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+# Том для SQLite в Docker (см. docker-compose.yml). Регистр важен!
+/data/
+
+# macOS / Linux мусор
+.DS_Store
+*.swp
+*~
+Thumbs.db
+
+# Docker
+.docker/
+
+# Прочее
+node_modules/
+dist/
+publish/
+PublishProfiles/
+*.publishsettings

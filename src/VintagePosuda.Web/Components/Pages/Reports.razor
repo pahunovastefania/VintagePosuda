@@ -1,0 +1,60 @@
+@page "/reports"
+@rendermode InteractiveServer
+@using VintagePosuda.Web.Models
+@using VintagePosuda.Web.Services
+@inject IReportService ReportService
+
+<PageTitle>Отчёты · Магазин винтажной посуды</PageTitle>
+
+<h1 class="mb-4">Отчёты по каталогу</h1>
+
+@if (_loading)
+{
+    <p class="text-muted">Подготовка отчётов...</p>
+}
+else
+{
+    <ul class="nav nav-tabs mb-3" role="tablist">
+        <li class="nav-item">
+            <button class="nav-link @ActiveClass("stock")"
+                    type="button"
+                    @onclick='() => SetActive("stock")'>
+                В наличии <span class="badge bg-success">@_inStock?.TotalCount</span>
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link @ActiveClass("sold")"
+                    type="button"
+                    @onclick='() => SetActive("sold")'>
+                Продано <span class="badge bg-secondary">@_sold?.TotalCount</span>
+            </button>
+        </li>
+    </ul>
+
+    @if (_active == "stock" && _inStock is not null)
+    {
+        <ReportTable Title="Что в наличии" Report="_inStock" PriceLabel="Сумма к продаже" />
+    }
+    else if (_active == "sold" && _sold is not null)
+    {
+        <ReportTable Title="Что продано" Report="_sold" PriceLabel="Выручка" />
+    }
+}
+
+@code {
+    private bool _loading = true;
+    private string _active = "stock";
+    private StockReport? _inStock;
+    private StockReport? _sold;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _inStock = await ReportService.GetInStockReportAsync();
+        _sold = await ReportService.GetSoldReportAsync();
+        _loading = false;
+    }
+
+    private void SetActive(string tab) => _active = tab;
+
+    private string ActiveClass(string tab) => _active == tab ? "active" : string.Empty;
+}

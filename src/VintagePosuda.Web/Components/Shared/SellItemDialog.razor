@@ -1,0 +1,50 @@
+@*
+    Модальное окно «Отметить проданным». Спрашивает дату продажи
+    (по умолчанию — сегодня) и вызывает обратный колбэк.
+*@
+@if (Visible)
+{
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal d-block" tabindex="-1" role="dialog" style="z-index: 1050;">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Отметить как проданное</h5>
+                    <button type="button" class="btn-close" aria-label="Закрыть" @onclick="Cancel"></button>
+                </div>
+                <div class="modal-body">
+                    <label class="form-label">Дата продажи</label>
+                    <input type="date" class="form-control" @bind="_soldAt" />
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="Cancel">Отмена</button>
+                    <button type="button" class="btn btn-success" @onclick="ConfirmAsync">Продано</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private DateTime _soldAt = DateTime.Today;
+    [Parameter]
+    public bool Visible { get; set; }
+    [Parameter]
+    public EventCallback<bool> VisibleChanged { get; set; }
+    [Parameter]
+    public EventCallback<DateTime> OnConfirm { get; set; }
+
+    private async Task ConfirmAsync()
+    {
+        await OnConfirm.InvokeAsync(_soldAt);
+        await Hide();
+    }
+
+    private Task Cancel() => Hide();
+
+    private async Task Hide()
+    {
+        Visible = false;
+        await VisibleChanged.InvokeAsync(false);
+    }
+}

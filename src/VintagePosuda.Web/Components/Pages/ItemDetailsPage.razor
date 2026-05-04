@@ -1,0 +1,175 @@
+@page "/items/{Id:int}"
+@rendermode InteractiveServer
+@using VintagePosuda.Web.Models
+@using VintagePosuda.Web.Services
+@using VintagePosuda.Web.Components.Shared
+@inject IItemService Items
+@inject NavigationManager Nav
+
+<PageTitle>@(_item?.Name ?? "Предмет") · Магазин винтажной посуды</PageTitle>
+
+@if (_item is null)
+{
+    <p class="text-muted">Загрузка...</p>
+}
+else
+{
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/">Каталог</a></li>
+            <li class="breadcrumb-item active">@_item.Name</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-start mb-3">
+        <div>
+            <h1 class="mb-1">@_item.Name</h1>
+            <StatusBadge Status="_item.Status" />
+        </div>
+        <div class="text-end">
+            <div class="display-6">@_item.Price.ToString("N2") ₽</div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-7">
+            <dl class="row">
+                <dt class="col-sm-4">Завод</dt>
+                <dd class="col-sm-8">@_item.Manufacturer?.Name (@_item.Manufacturer?.Country)</dd>
+
+                <dt class="col-sm-4">Категория</dt>
+                <dd class="col-sm-8">@_item.Category?.Name</dd>
+
+                <dt class="col-sm-4">Материал</dt>
+                <dd class="col-sm-8">@_item.Material?.Name</dd>
+
+                <dt class="col-sm-4">Год выпуска</dt>
+                <dd class="col-sm-8">@(_item.Year?.ToString() ?? "не указан")</dd>
+
+                @if (_item.Status == ItemStatus.Sold && _item.SoldAt is not null)
+                {
+                    <dt class="col-sm-4">Дата продажи</dt>
+                    <dd class="col-sm-8">@_item.SoldAt?.ToLocalTime().ToString("dd.MM.yyyy")</dd>
+                }
+
+                <dt class="col-sm-4">Добавлено</dt>
+                <dd class="col-sm-8">@_item.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy")</dd>
+            </dl>
+
+            @if (!string.IsNullOrWhiteSpace(_item.Description))
+            {
+                <h5 class="mt-4">Описание</h5>
+                <p>@_item.Description</p>
+            }
+
+            @if (_item.Details is not null)
+            {
+                <h5 class="mt-4">Подробности</h5>
+                <dl class="row">
+                    @if (!string.IsNullOrEmpty(_item.Details.Origin))
+                    {
+                        <dt class="col-sm-4">Происхождение</dt>
+                        <dd class="col-sm-8">@_item.Details.Origin</dd>
+                    }
+                    @if (!string.IsNullOrEmpty(_item.Details.Provenance))
+                    {
+                        <dt class="col-sm-4">История</dt>
+                        <dd class="col-sm-8">@_item.Details.Provenance</dd>
+                    }
+                    <dt class="col-sm-4">Состояние</dt>
+                    <dd class="col-sm-8">@_item.Details.Condition</dd>
+                    @if (!string.IsNullOrEmpty(_item.Details.Defects))
+                    {
+                        <dt class="col-sm-4">Дефекты</dt>
+                        <dd class="col-sm-8">@_item.Details.Defects</dd>
+                    }
+                </dl>
+            }
+
+            @if (_item.ItemTags.Any())
+            {
+                <h5 class="mt-4">Теги</h5>
+                @foreach (var it in _item.ItemTags)
+                {
+                    <span class="badge bg-info text-dark me-1">@it.Tag?.Name</span>
+                }
+            }
+        </div>
+    </div>
+
+    <hr />
+
+    <div class="d-flex flex-wrap gap-2">
+        <a class="btn btn-primary" href="@($"/items/{_item.Id}/edit")">Редактировать</a>
+
+        @if (_item.Status == ItemStatus.InStock)
+        {
+            <button class="btn btn-success" @onclick="() => _sellDialogVisible = true">Отметить проданным</button>
+            <button class="btn btn-outline-warning" @onclick="() => _archiveDialogVisible = true">Архивировать</button>
+        }
+        else
+        {
+            <button class="btn btn-outline-secondary" @onclick="RestoreAsync">Вернуть в продажу</button>
+        }
+
+        <AuthorizeView Roles="Admin">
+            <button class="btn btn-outline-danger ms-auto" @onclick="() => _deleteDialogVisible = true">
+                Удалить
+            </button>
+        </AuthorizeView>
+    </div>
+}
+
+<SellItemDialog @bind-Visible="_sellDialogVisible" OnConfirm="MarkSoldAsync" />
+
+<ConfirmDialog @bind-Visible="_archiveDialogVisible"
+               Title="Архивирование"
+               Body="Перевести предмет в архив? Он останется в БД, но скроется из активного каталога."
+               ConfirmText="Архивировать"
+               ConfirmCssClass="btn-warning"
+               OnConfirm="ArchiveAsync" />
+
+<ConfirmDialog @bind-Visible="_deleteDialogVisible"
+               Title="Удаление"
+               Body="Удалить предмет навсегда? Это действие необратимо."
+               ConfirmText="Удалить"
+               ConfirmCssClass="btn-danger"
+               OnConfirm="DeleteAsync" />
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private Item? _item;
+    private bool _sellDialogVisible;
+    private bool _archiveDialogVisible;
+    private bool _deleteDialogVisible;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _item = await Items.GetByIdAsync(Id);
+    }
+
+    private async Task MarkSoldAsync(DateTime soldAt)
+    {
+        await Items.MarkAsSoldAsync(Id, soldAt.ToUniversalTime());
+        _item = await Items.GetByIdAsync(Id);
+    }
+
+    private async Task ArchiveAsync()
+    {
+        await Items.ArchiveAsync(Id);
+        _item = await Items.GetByIdAsync(Id);
+    }
+
+    private async Task RestoreAsync()
+    {
+        await Items.RestoreAsync(Id);
+        _item = await Items.GetByIdAsync(Id);
+    }
+
+    private async Task DeleteAsync()
+    {
+        await Items.DeleteAsync(Id);
+        Nav.NavigateTo("/");
+    }
+}

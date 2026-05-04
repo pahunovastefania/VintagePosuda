@@ -1,0 +1,10 @@
+global using FluentAssertions;
+global using Microsoft.Data.Sqlite;
+global using Microsoft.EntityFrameworkCore;
+global using Moq;
+global using VintagePosuda.Web.Data;
+global using VintagePosuda.Web.Models;
+global using VintagePosuda.Web.Repositories;
+global using VintagePosuda.Web.Services;
+global using VintagePosuda.Web.Validators;
+global using Xunit;

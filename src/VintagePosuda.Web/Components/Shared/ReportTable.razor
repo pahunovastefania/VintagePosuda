@@ -1,0 +1,68 @@
+@*
+    Универсальная таблица для отчёта (одна и та же разметка
+    для «В наличии» и «Продано», параметризована заголовком и подписями).
+*@
+@using VintagePosuda.Web.Models
+@using VintagePosuda.Web.Services
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between">
+        <h5 class="mb-0">@Title</h5>
+        <div>
+            <span class="text-muted me-3">Всего: <strong>@Report.TotalCount</strong></span>
+            <span>@PriceLabel: <strong>@Report.TotalPrice.ToString("N2") ₽</strong></span>
+        </div>
+    </div>
+    @if (Report.TotalCount == 0)
+    {
+        <div class="card-body text-muted">Записей нет.</div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-striped mb-0">
+                <thead>
+                    <tr>
+                        <th>Название</th>
+                        <th>Завод</th>
+                        <th>Категория</th>
+                        <th>Год</th>
+                        <th class="text-end">Цена, ₽</th>
+                        <th>Дата</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Report.Items)
+                    {
+                        <tr>
+                            <td><a href="@($"/items/{item.Id}")">@item.Name</a></td>
+                            <td>@item.Manufacturer?.Name</td>
+                            <td>@item.Category?.Name</td>
+                            <td>@(item.Year?.ToString() ?? "—")</td>
+                            <td class="text-end">@item.Price.ToString("N2")</td>
+                            <td>
+                                @if (item.SoldAt is not null)
+                                {
+                                    @item.SoldAt?.ToLocalTime().ToString("dd.MM.yyyy")
+                                }
+                                else
+                                {
+                                    @item.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy")
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Title { get; set; } = string.Empty;
+    [Parameter, EditorRequired]
+    public StockReport Report { get; set; } = new();
+    [Parameter]
+    public string PriceLabel { get; set; } = "Сумма";
+}
