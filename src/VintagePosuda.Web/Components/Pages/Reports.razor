@@ -1,5 +1,7 @@
 @page "/reports"
+@page "/admin/reports"
 @rendermode InteractiveServer
+@attribute [Authorize]
 @using VintagePosuda.Web.Models
 @using VintagePosuda.Web.Services
 @inject IReportService ReportService

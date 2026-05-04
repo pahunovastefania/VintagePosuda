@@ -112,6 +112,17 @@ public class ItemRepositoryTests : IDisposable
     }
 
     [Fact]
+    public async Task SearchAsync_ForShop_LoadsPhotosAndTags()
+    {
+        var result = await _sut.SearchAsync(new SearchQuery { Status = ItemStatus.InStock });
+
+        var teaPair = result.Should().ContainSingle(x => x.Name == "Чайная пара Кобальт").Subject;
+        teaPair.Photos.Should().ContainSingle().Which.Url.Should().Be("https://example.test/tea-pair.jpg");
+        teaPair.ItemTags.Should().ContainSingle();
+        teaPair.ItemTags.First().Tag.Should().NotBeNull();
+    }
+
+    [Fact]
     public async Task GetWithDetailsAsync_LoadsManufacturerCategoryDetailsTags()
     {
         var item = await _db.Items.FirstAsync(x => x.Name == "Чайная пара Кобальт");
@@ -123,6 +134,7 @@ public class ItemRepositoryTests : IDisposable
         loaded.Material.Should().NotBeNull();
         loaded.Details.Should().NotBeNull();
         loaded.Details!.Origin.Should().Be("Ленинград");
+        loaded.Photos.Should().ContainSingle().Which.IsPrimary.Should().BeTrue();
         loaded.ItemTags.Should().HaveCount(1);
         loaded.ItemTags.First().Tag.Should().NotBeNull();
         loaded.ItemTags.First().Tag!.Name.Should().Be("СССР");

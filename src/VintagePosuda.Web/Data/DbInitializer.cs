@@ -35,6 +35,7 @@ public static class DbInitializer
         await SeedTagsAsync(db);
         await SeedManufacturersAsync(db);
         await SeedItemsAsync(db);
+        await SeedItemPhotosAsync(db);
     }
 
     private static async Task SeedRolesAsync(RoleManager<IdentityRole> roleManager)
@@ -386,6 +387,57 @@ public static class DbInitializer
             },
             tags["Импорт"].Id,
             tags["Винтаж"].Id);
+    }
+
+    private static async Task SeedItemPhotosAsync(ApplicationDbContext db)
+    {
+        var photos = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["Чайная пара \"Кобальтовая сетка\""] = "https://images.metmuseum.org/CRDImages/ad/web-large/DP223040.jpg",
+            ["Декоративная тарелка Meissen с цветочным орнаментом"] = "https://images.metmuseum.org/CRDImages/ad/web-large/DP261201.jpg",
+            ["Ваза Дулёво «Малинка»"] = "https://images.metmuseum.org/CRDImages/as/web-large/DP246426.jpg",
+            ["Сервиз Wedgwood Jasperware на шесть персон"] = "https://images.metmuseum.org/CRDImages/ad/web-large/125563.jpg",
+            ["Сахарница Вербилки с золотой отводкой"] = "https://images.metmuseum.org/CRDImages/ad/web-large/ADA5346.jpg",
+            ["Хрустальная конфетница с гранёным бортом"] = "https://images.metmuseum.org/CRDImages/gr/web-large/DP105810.jpg",
+            ["Тарелка Кузнецов с кобальтовым бортом"] = "https://images.metmuseum.org/CRDImages/cl/web-large/DP248473.jpg",
+            ["Чайник Royal Copenhagen Blue Fluted"] = "https://images.metmuseum.org/CRDImages/ad/web-large/DP-15482-001.jpg",
+            ["Салатник Rosenthal с платиновым кантом"] = "https://images.metmuseum.org/CRDImages/es/web-large/36071.jpg",
+        };
+
+        var itemIds = await db.Items
+            .Where(item => photos.Keys.Contains(item.Name))
+            .Select(item => new { item.Id, item.Name })
+            .ToListAsync();
+
+        foreach (var item in itemIds)
+        {
+            string url = photos[item.Name];
+            var existingPhotos = await db.ItemPhotos
+                .Where(photo => photo.ItemId == item.Id)
+                .ToListAsync();
+            var primaryPhoto = existingPhotos.FirstOrDefault(photo => photo.Url == url);
+
+            foreach (var photo in existingPhotos.Where(photo => photo.Url != url))
+            {
+                photo.IsPrimary = false;
+            }
+
+            if (primaryPhoto is null)
+            {
+                db.ItemPhotos.Add(new ItemPhoto
+                {
+                    ItemId = item.Id,
+                    Url = url,
+                    IsPrimary = true,
+                });
+            }
+            else
+            {
+                primaryPhoto.IsPrimary = true;
+            }
+        }
+
+        await db.SaveChangesAsync();
     }
 
     private static async Task AddMissingAsync<T>(

@@ -1,0 +1,113 @@
+@using System.ComponentModel.DataAnnotations
+@using VintagePosuda.Web.Models
+
+@if (Visible && Item is not null)
+{
+    <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <div>
+                        <h5 class="modal-title">Заявка на товар</h5>
+                        <div class="text-muted small">@Item.Name</div>
+                    </div>
+                    <button type="button" class="btn-close" aria-label="Закрыть" @onclick="CloseAsync"></button>
+                </div>
+                <div class="modal-body">
+                    @if (_submitted)
+                    {
+                        <div class="alert alert-success mb-0">
+                            Заявка принята. Менеджер свяжется с покупателем для подтверждения наличия и доставки.
+                        </div>
+                    }
+                    else
+                    {
+                        <EditForm Model="_model" OnValidSubmit="SubmitAsync">
+                            <DataAnnotationsValidator />
+                            <div class="mb-3">
+                                <label class="form-label" for="buyer-name">Имя</label>
+                                <InputText id="buyer-name" class="form-control" @bind-Value="_model.Name" />
+                                <ValidationMessage For="() => _model.Name" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label" for="buyer-phone">Телефон</label>
+                                <InputText id="buyer-phone" class="form-control" @bind-Value="_model.Phone" />
+                                <ValidationMessage For="() => _model.Phone" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label" for="buyer-email">Email</label>
+                                <InputText id="buyer-email" class="form-control" @bind-Value="_model.Email" />
+                                <ValidationMessage For="() => _model.Email" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label" for="buyer-comment">Комментарий</label>
+                                <InputTextArea id="buyer-comment" class="form-control" rows="3" @bind-Value="_model.Comment" />
+                            </div>
+                            <div class="d-flex justify-content-end gap-2">
+                                <button type="button" class="btn btn-outline-secondary" @onclick="CloseAsync">Отмена</button>
+                                <button type="submit" class="btn btn-primary">Отправить заявку</button>
+                            </div>
+                        </EditForm>
+                    }
+                </div>
+                @if (_submitted)
+                {
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-primary" @onclick="CloseAsync">Готово</button>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show"></div>
+}
+
+@code {
+    [Parameter] public Item? Item { get; set; }
+    [Parameter] public bool Visible { get; set; }
+    [Parameter] public EventCallback<bool> VisibleChanged { get; set; }
+
+    private readonly PurchaseRequestModel _model = new();
+    private bool _submitted;
+
+    protected override void OnParametersSet()
+    {
+        if (!Visible)
+        {
+            _submitted = false;
+        }
+    }
+
+    private Task SubmitAsync()
+    {
+        _submitted = true;
+        return Task.CompletedTask;
+    }
+
+    private async Task CloseAsync()
+    {
+        _model.Name = string.Empty;
+        _model.Phone = string.Empty;
+        _model.Email = string.Empty;
+        _model.Comment = string.Empty;
+        _submitted = false;
+        await VisibleChanged.InvokeAsync(false);
+    }
+
+    private sealed class PurchaseRequestModel
+    {
+        [Required(ErrorMessage = "Укажите имя")]
+        [StringLength(80, ErrorMessage = "Имя должно быть короче 80 символов")]
+        public string Name { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Укажите телефон")]
+        [Phone(ErrorMessage = "Проверьте формат телефона")]
+        public string Phone { get; set; } = string.Empty;
+
+        [EmailAddress(ErrorMessage = "Проверьте формат email")]
+        public string? Email { get; set; }
+
+        [StringLength(500, ErrorMessage = "Комментарий должен быть короче 500 символов")]
+        public string? Comment { get; set; }
+    }
+}

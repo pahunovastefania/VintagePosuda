@@ -1,0 +1,164 @@
+@page "/shop/items/{Id:int}"
+@rendermode InteractiveServer
+@using VintagePosuda.Web.Models
+@using VintagePosuda.Web.Services
+@inject IItemService Items
+
+<PageTitle>@(_item?.Name ?? "Товар") · Магазин винтажной посуды</PageTitle>
+
+@if (_loading)
+{
+    <p class="text-muted">Загрузка товара...</p>
+}
+else if (_item is null)
+{
+    <div class="alert alert-warning">Товар не найден.</div>
+}
+else
+{
+    <nav aria-label="breadcrumb" class="shop-breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/">Магазин</a></li>
+            <li class="breadcrumb-item active">@_item.Name</li>
+        </ol>
+    </nav>
+
+    <article class="product-detail">
+        <div class="product-detail__gallery">
+            @if (PrimaryPhoto(_item) is string photo)
+            {
+                <img src="@photo" alt="@_item.Name" />
+            }
+            else
+            {
+                <div class="product-detail__placeholder">@Initials(_item.Name)</div>
+            }
+        </div>
+
+        <div class="product-detail__info">
+            <div class="product-detail__meta">
+                <span>@_item.Category?.Name</span>
+                <span>@(AvailabilityText)</span>
+            </div>
+            <h1>@_item.Name</h1>
+            <p class="product-detail__lead">@_item.Description</p>
+            <div class="product-detail__price">@_item.Price.ToString("N0") ₽</div>
+
+            @if (_item.Status == ItemStatus.InStock)
+            {
+                <button class="btn btn-primary btn-lg" @onclick="() => _requestVisible = true">Оставить заявку</button>
+            }
+            else
+            {
+                <button class="btn btn-outline-secondary btn-lg" disabled>Нет в продаже</button>
+            }
+
+            <dl class="product-specs">
+                <div>
+                    <dt>Производитель</dt>
+                    <dd>@_item.Manufacturer?.Name</dd>
+                </div>
+                <div>
+                    <dt>Страна</dt>
+                    <dd>@_item.Manufacturer?.Country</dd>
+                </div>
+                <div>
+                    <dt>Материал</dt>
+                    <dd>@_item.Material?.Name</dd>
+                </div>
+                <div>
+                    <dt>Год выпуска</dt>
+                    <dd>@(_item.Year?.ToString() ?? "не указан")</dd>
+                </div>
+            </dl>
+        </div>
+    </article>
+
+    <section class="product-info-grid">
+        <div>
+            <h2>Состояние и происхождение</h2>
+            @if (_item.Details is null)
+            {
+                <p>Подробная информация уточняется.</p>
+            }
+            else
+            {
+                <dl>
+                    @if (!string.IsNullOrWhiteSpace(_item.Details.Condition))
+                    {
+                        <dt>Состояние</dt>
+                        <dd>@_item.Details.Condition</dd>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(_item.Details.Origin))
+                    {
+                        <dt>Происхождение</dt>
+                        <dd>@_item.Details.Origin</dd>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(_item.Details.Provenance))
+                    {
+                        <dt>История</dt>
+                        <dd>@_item.Details.Provenance</dd>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(_item.Details.Defects))
+                    {
+                        <dt>Особенности</dt>
+                        <dd>@_item.Details.Defects</dd>
+                    }
+                </dl>
+            }
+        </div>
+        <div>
+            <h2>Теги</h2>
+            @if (_item.ItemTags.Any())
+            {
+                <div class="tag-list">
+                    @foreach (var itemTag in _item.ItemTags)
+                    {
+                        <span>@itemTag.Tag?.Name</span>
+                    }
+                </div>
+            }
+            else
+            {
+                <p>Для товара пока не указаны теги.</p>
+            }
+        </div>
+    </section>
+}
+
+<PurchaseRequestDialog Item="_item" @bind-Visible="_requestVisible" />
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private Item? _item;
+    private bool _loading = true;
+    private bool _requestVisible;
+
+    private string AvailabilityText => _item?.Status == ItemStatus.InStock ? "В наличии" : "Нет в продаже";
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _loading = true;
+        _item = await Items.GetByIdAsync(Id);
+        _loading = false;
+
+        if (_item?.Status == ItemStatus.Archived)
+        {
+            _item = null;
+        }
+    }
+
+    private static string? PrimaryPhoto(Item item)
+        => item.Photos
+            .OrderByDescending(photo => photo.IsPrimary)
+            .ThenBy(photo => photo.Id)
+            .Select(photo => photo.Url)
+            .FirstOrDefault();
+
+    private static string Initials(string name)
+        => string.Concat(name
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Take(2)
+            .Select(word => word[0]));
+}

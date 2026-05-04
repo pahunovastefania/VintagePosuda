@@ -45,6 +45,11 @@ internal static class TestDbFactory
             Details = new ItemDetails { Condition = "Excellent", Origin = "Ленинград" },
         };
         item1.ItemTags.Add(new ItemTag { TagId = ussr.Id });
+        item1.Photos.Add(new ItemPhoto
+        {
+            Url = "https://example.test/tea-pair.jpg",
+            IsPrimary = true,
+        });
 
         var item2 = new Item
         {
@@ -58,6 +63,11 @@ internal static class TestDbFactory
             Details = new ItemDetails { Condition = "Good" },
         };
         item2.ItemTags.Add(new ItemTag { TagId = antique.Id });
+        item2.Photos.Add(new ItemPhoto
+        {
+            Url = "https://example.test/plate.jpg",
+            IsPrimary = true,
+        });
 
         var item3 = new Item
         {

@@ -1,15 +1,16 @@
-@page "/"
 @page "/catalog"
+@page "/admin/catalog"
 @rendermode InteractiveServer
+@attribute [Authorize]
 @using VintagePosuda.Web.Models
 @using VintagePosuda.Web.Services
 @inject IItemService Items
 @inject NavigationManager Nav
 
-<PageTitle>Каталог · Магазин винтажной посуды</PageTitle>
+<PageTitle>Админ-каталог · Винтажная посуда</PageTitle>
 
 <div class="d-flex justify-content-between align-items-center mb-3">
-    <h1 class="mb-0">Каталог винтажной посуды</h1>
+    <h1 class="mb-0">Админ-каталог</h1>
     <a class="btn btn-success" href="/items/new">+ Добавить предмет</a>
 </div>
 

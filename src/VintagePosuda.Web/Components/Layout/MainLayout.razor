@@ -21,15 +21,19 @@
                 </div>
 
                 <nav class="footer-links" aria-label="Ссылки в нижней части сайта">
-                    <a href="/">Каталог</a>
-                    <a href="/reports">Отчёты</a>
-                    <a href="/items/new">Добавить предмет</a>
+                    <a href="/">Магазин</a>
+                    <AuthorizeView>
+                        <Authorized>
+                            <a href="/admin/catalog">Админ-каталог</a>
+                            <a href="/admin/reports">Отчёты</a>
+                        </Authorized>
+                    </AuthorizeView>
                 </nav>
 
                 <div class="footer-meta">
-                    <span>.NET 8</span>
-                    <span>Blazor Server</span>
-                    <span>EF Core</span>
+                    <span>Фарфор</span>
+                    <span>Хрусталь</span>
+                    <span>Антиквариат</span>
                 </div>
             </div>
         </footer>

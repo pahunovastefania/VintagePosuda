@@ -1,0 +1,238 @@
+@page "/"
+@rendermode InteractiveServer
+@using VintagePosuda.Web.Models
+@using VintagePosuda.Web.Services
+@inject IItemService Items
+@inject ICategoryService Categories
+@inject IManufacturerService Manufacturers
+
+<PageTitle>Магазин винтажной посуды</PageTitle>
+
+<section class="shop-hero">
+    <div class="shop-hero__text">
+        <p class="shop-kicker">Коллекционная посуда с историей</p>
+        <h1>Винтажная посуда для сервировки, коллекции и подарка</h1>
+        <p>Подбираем фарфор, фаянс, хрусталь и сервизы с понятным описанием состояния, происхождения и особенностей каждого предмета.</p>
+        <div class="shop-hero__actions">
+            <a class="btn btn-primary btn-lg" href="#catalog">Смотреть каталог</a>
+            <AuthorizeView>
+                <Authorized>
+                    <a class="btn btn-outline-secondary btn-lg" href="/admin/catalog">Админ-каталог</a>
+                </Authorized>
+            </AuthorizeView>
+        </div>
+    </div>
+    <div class="shop-hero__media" aria-hidden="true">
+        @if (FeaturedPhoto is not null)
+        {
+            <img src="@FeaturedPhoto" alt="" />
+        }
+        <div class="shop-hero__badge">
+            <span>@_items.Count</span>
+            <small>предметов в наличии</small>
+        </div>
+    </div>
+</section>
+
+<section class="shop-benefits" aria-label="Преимущества магазина">
+    <div>
+        <strong>Проверенное состояние</strong>
+        <span>В описании указаны дефекты, клейма и следы времени.</span>
+    </div>
+    <div>
+        <strong>Редкие производители</strong>
+        <span>ЛФЗ, Wedgwood, Meissen, Royal Copenhagen и другие фабрики.</span>
+    </div>
+    <div>
+        <strong>Заявка без оплаты</strong>
+        <span>Покупатель оставляет контакты, менеджер подтверждает наличие.</span>
+    </div>
+</section>
+
+<section id="catalog" class="shop-section">
+    <div class="shop-section__header">
+        <div>
+            <p class="shop-kicker">Каталог</p>
+            <h2>Предметы в наличии</h2>
+        </div>
+        <p class="shop-section__count">Найдено: @_filteredItems.Count</p>
+    </div>
+
+    <div class="shop-filters">
+        <div class="shop-field shop-field--wide">
+            <label for="shop-search">Поиск</label>
+            <input id="shop-search"
+                   class="form-control"
+                   placeholder="Название, завод или описание"
+                   @bind="_searchText"
+                   @bind:event="oninput"
+                   @bind:after="ApplyFilters" />
+        </div>
+        <div class="shop-field">
+            <label for="shop-category">Категория</label>
+            <select id="shop-category" class="form-select" @bind="_categoryId" @bind:after="ApplyFilters">
+                <option value="">Все категории</option>
+                @foreach (var category in _categories)
+                {
+                    <option value="@category.Id">@category.Name</option>
+                }
+            </select>
+        </div>
+        <div class="shop-field">
+            <label for="shop-manufacturer">Производитель</label>
+            <select id="shop-manufacturer" class="form-select" @bind="_manufacturerId" @bind:after="ApplyFilters">
+                <option value="">Все фабрики</option>
+                @foreach (var manufacturer in _manufacturers)
+                {
+                    <option value="@manufacturer.Id">@manufacturer.Name</option>
+                }
+            </select>
+        </div>
+        <div class="shop-field">
+            <label for="shop-sort">Сортировка</label>
+            <select id="shop-sort" class="form-select" @bind="_sortMode" @bind:after="ApplyFilters">
+                <option value="new">Сначала новые</option>
+                <option value="price-asc">Цена по возрастанию</option>
+                <option value="price-desc">Цена по убыванию</option>
+                <option value="year-asc">Сначала старинные</option>
+            </select>
+        </div>
+    </div>
+
+    @if (_loading)
+    {
+        <p class="text-muted">Загрузка каталога...</p>
+    }
+    else if (_filteredItems.Count == 0)
+    {
+        <div class="alert alert-info">По выбранным условиям ничего не найдено.</div>
+    }
+    else
+    {
+        <div class="shop-grid">
+            @foreach (var item in _filteredItems)
+            {
+                <article class="product-card">
+                    <a class="product-card__image" href="@($"/shop/items/{item.Id}")">
+                        @if (PrimaryPhoto(item) is string photo)
+                        {
+                            <img src="@photo" alt="@item.Name" loading="lazy" />
+                        }
+                        else
+                        {
+                            <span>@Initials(item.Name)</span>
+                        }
+                    </a>
+                    <div class="product-card__body">
+                        <div class="product-card__meta">
+                            <span>@item.Category?.Name</span>
+                            <span>@(item.Year?.ToString() ?? "год не указан")</span>
+                        </div>
+                        <h3><a href="@($"/shop/items/{item.Id}")">@item.Name</a></h3>
+                        <p>@ShortDescription(item)</p>
+                        <div class="product-card__bottom">
+                            <strong>@item.Price.ToString("N0") ₽</strong>
+                            <a class="btn btn-sm btn-outline-primary" href="@($"/shop/items/{item.Id}")">Подробнее</a>
+                        </div>
+                    </div>
+                </article>
+            }
+        </div>
+    }
+</section>
+
+@code {
+    private readonly SearchQuery _query = new() { Status = ItemStatus.InStock };
+    private IReadOnlyList<Item> _items = [];
+    private IReadOnlyList<Item> _filteredItems = [];
+    private IReadOnlyList<Category> _categories = [];
+    private IReadOnlyList<Manufacturer> _manufacturers = [];
+    private string? _searchText;
+    private int? _categoryId;
+    private int? _manufacturerId;
+    private string _sortMode = "new";
+    private bool _loading = true;
+
+    private string? FeaturedPhoto => _items.Select(PrimaryPhoto).FirstOrDefault(x => x is not null);
+
+    protected override async Task OnInitializedAsync()
+    {
+        _categories = await Categories.GetAllAsync();
+        _manufacturers = await Manufacturers.GetAllAsync();
+        _items = await Items.SearchAsync(_query);
+        ApplyFilters();
+        _loading = false;
+    }
+
+    private void ApplyFilters()
+    {
+        IEnumerable<Item> items = _items;
+
+        if (!string.IsNullOrWhiteSpace(_searchText))
+        {
+            string[] terms = SplitTerms(_searchText);
+            items = items.Where(item => terms.All(term => Matches(item, term)));
+        }
+
+        if (_categoryId is not null)
+        {
+            items = items.Where(item => item.CategoryId == _categoryId);
+        }
+
+        if (_manufacturerId is not null)
+        {
+            items = items.Where(item => item.ManufacturerId == _manufacturerId);
+        }
+
+        items = _sortMode switch
+        {
+            "price-asc" => items.OrderBy(item => item.Price),
+            "price-desc" => items.OrderByDescending(item => item.Price),
+            "year-asc" => items.OrderBy(item => item.Year ?? int.MaxValue),
+            _ => items.OrderByDescending(item => item.CreatedAt),
+        };
+
+        _filteredItems = items.ToList();
+    }
+
+    private static string? PrimaryPhoto(Item item)
+        => item.Photos
+            .OrderByDescending(photo => photo.IsPrimary)
+            .ThenBy(photo => photo.Id)
+            .Select(photo => photo.Url)
+            .FirstOrDefault();
+
+    private static string ShortDescription(Item item)
+    {
+        if (string.IsNullOrWhiteSpace(item.Description))
+        {
+            return item.Manufacturer?.Name ?? "Винтажный предмет для сервировки.";
+        }
+
+        return item.Description.Length <= 110
+            ? item.Description
+            : $"{item.Description[..107]}...";
+    }
+
+    private static string[] SplitTerms(string value)
+        => value
+            .Trim()
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+    private static bool Matches(Item item, string term)
+        => Contains(item.Name, term)
+            || Contains(item.Description, term)
+            || Contains(item.Manufacturer?.Name, term)
+            || Contains(item.Category?.Name, term)
+            || item.ItemTags.Any(tag => Contains(tag.Tag?.Name, term));
+
+    private static bool Contains(string? value, string term)
+        => !string.IsNullOrWhiteSpace(value)
+            && value.Contains(term, StringComparison.CurrentCultureIgnoreCase);
+
+    private static string Initials(string name)
+        => string.Concat(name
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Take(2)
+            .Select(word => word[0]));
+}

@@ -13,25 +13,29 @@
     <nav class="flex-column">
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Каталог
+                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Магазин
             </NavLink>
         </div>
 
         <AuthorizeView>
             <Authorized>
                 <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="admin/catalog">
+                        <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Админ-каталог
+                    </NavLink>
+                </div>
+                <div class="nav-item px-3">
                     <NavLink class="nav-link" href="items/new">
                         <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Добавить предмет
                     </NavLink>
                 </div>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="admin/reports">
+                        <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Отчёты
+                    </NavLink>
+                </div>
             </Authorized>
         </AuthorizeView>
-
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="reports">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Отчёты
-            </NavLink>
-        </div>
 
         <hr class="text-secondary mx-3" />
 

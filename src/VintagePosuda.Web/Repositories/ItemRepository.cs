@@ -16,7 +16,10 @@ public class ItemRepository : Repository<Item>, IItemRepository
             .AsNoTracking()
             .Include(x => x.Manufacturer)
             .Include(x => x.Category)
-            .Include(x => x.Material);
+            .Include(x => x.Material)
+            .Include(x => x.Photos)
+            .Include(x => x.ItemTags)!
+                .ThenInclude(it => it.Tag);
 
         if (query.Year is not null)
         {

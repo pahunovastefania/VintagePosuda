@@ -1,5 +1,6 @@
 @page "/items/{Id:int}"
 @rendermode InteractiveServer
+@attribute [Authorize]
 @using VintagePosuda.Web.Models
 @using VintagePosuda.Web.Services
 @using VintagePosuda.Web.Components.Shared
@@ -16,7 +17,7 @@ else
 {
     <nav aria-label="breadcrumb">
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="/">Каталог</a></li>
+            <li class="breadcrumb-item"><a href="/admin/catalog">Админ-каталог</a></li>
             <li class="breadcrumb-item active">@_item.Name</li>
         </ol>
     </nav>
@@ -170,6 +171,6 @@ else
     private async Task DeleteAsync()
     {
         await Items.DeleteAsync(Id);
-        Nav.NavigateTo("/");
+        Nav.NavigateTo("/admin/catalog");
     }
 }
