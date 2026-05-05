@@ -26,6 +26,9 @@ public class ItemConfiguration : IEntityTypeConfiguration<Item>
             .HasConversion<int>()
             .IsRequired();
 
+        builder.Property(x => x.RowVersion)
+            .IsConcurrencyToken();
+
         // Индексы для часто используемых полей поиска.
         builder.HasIndex(x => x.Name);
         builder.HasIndex(x => x.Year);

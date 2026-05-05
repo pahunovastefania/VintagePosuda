@@ -1,5 +1,8 @@
 @using System.ComponentModel.DataAnnotations
 @using VintagePosuda.Web.Models
+@using VintagePosuda.Web.Services
+@inject IPurchaseRequestService PurchaseRequests
+@inject ILogger<PurchaseRequestDialog> Logger
 
 @if (Visible && Item is not null)
 {
@@ -22,6 +25,10 @@
                     }
                     else
                     {
+                        @if (!string.IsNullOrEmpty(_error))
+                        {
+                            <div class="alert alert-danger">@_error</div>
+                        }
                         <EditForm Model="_model" OnValidSubmit="SubmitAsync">
                             <DataAnnotationsValidator />
                             <div class="mb-3">
@@ -44,8 +51,10 @@
                                 <InputTextArea id="buyer-comment" class="form-control" rows="3" @bind-Value="_model.Comment" />
                             </div>
                             <div class="d-flex justify-content-end gap-2">
-                                <button type="button" class="btn btn-outline-secondary" @onclick="CloseAsync">Отмена</button>
-                                <button type="submit" class="btn btn-primary">Отправить заявку</button>
+                                <button type="button" class="btn btn-outline-secondary" @onclick="CloseAsync" disabled="@_saving">Отмена</button>
+                                <button type="submit" class="btn btn-primary" disabled="@_saving">
+                                    @(_saving ? "Отправляем…" : "Отправить заявку")
+                                </button>
                             </div>
                         </EditForm>
                     }
@@ -69,19 +78,49 @@
 
     private readonly PurchaseRequestModel _model = new();
     private bool _submitted;
+    private bool _saving;
+    private string? _error;
 
     protected override void OnParametersSet()
     {
         if (!Visible)
         {
             _submitted = false;
+            _error = null;
         }
     }
 
-    private Task SubmitAsync()
+    private async Task SubmitAsync()
     {
-        _submitted = true;
-        return Task.CompletedTask;
+        if (Item is null || _saving)
+        {
+            return;
+        }
+
+        _saving = true;
+        _error = null;
+        try
+        {
+            var request = new PurchaseRequest
+            {
+                ItemId = Item.Id,
+                BuyerName = _model.Name,
+                BuyerPhone = _model.Phone,
+                BuyerEmail = _model.Email,
+                Comment = _model.Comment,
+            };
+            await PurchaseRequests.CreateAsync(request);
+            _submitted = true;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Не удалось сохранить заявку на товар {ItemId}", Item.Id);
+            _error = "Не удалось отправить заявку. Попробуйте позже.";
+        }
+        finally
+        {
+            _saving = false;
+        }
     }
 
     private async Task CloseAsync()
@@ -91,6 +130,7 @@
         _model.Email = string.Empty;
         _model.Comment = string.Empty;
         _submitted = false;
+        _error = null;
         await VisibleChanged.InvokeAsync(false);
     }
 

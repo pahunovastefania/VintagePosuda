@@ -1,0 +1,97 @@
+@page "/admin/purchase-requests"
+@rendermode InteractiveServer
+@attribute [Authorize]
+@using VintagePosuda.Web.Models
+@using VintagePosuda.Web.Services
+@inject IPurchaseRequestService Requests
+
+<PageTitle>Заявки покупателей · Винтажная посуда</PageTitle>
+
+<h1 class="mb-3">Заявки покупателей</h1>
+
+@if (_items is null)
+{
+    <p class="text-muted">Загрузка...</p>
+}
+else if (_items.Count == 0)
+{
+    <div class="alert alert-info">Заявок пока нет.</div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-striped align-middle">
+            <thead>
+                <tr>
+                    <th>Дата</th>
+                    <th>Товар</th>
+                    <th>Покупатель</th>
+                    <th>Телефон</th>
+                    <th>Email</th>
+                    <th>Комментарий</th>
+                    <th>Статус</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var r in _items)
+                {
+                    <tr>
+                        <td>@r.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</td>
+                        <td>
+                            <a href="@($"/items/{r.ItemId}")" class="text-decoration-none">
+                                @(r.Item?.Name ?? $"#{r.ItemId}")
+                            </a>
+                        </td>
+                        <td>@r.BuyerName</td>
+                        <td>@r.BuyerPhone</td>
+                        <td>@(r.BuyerEmail ?? "—")</td>
+                        <td class="text-truncate" style="max-width: 220px;" title="@r.Comment">@(r.Comment ?? "—")</td>
+                        <td>@StatusLabel(r.Status)</td>
+                        <td class="text-end">
+                            @if (r.Status == PurchaseRequestStatus.New)
+                            {
+                                <button type="button" class="btn btn-sm btn-outline-primary"
+                                        @onclick="() => SetStatusAsync(r.Id, PurchaseRequestStatus.Contacted)">
+                                    Связались
+                                </button>
+                            }
+                            @if (r.Status != PurchaseRequestStatus.Closed)
+                            {
+                                <button type="button" class="btn btn-sm btn-outline-secondary"
+                                        @onclick="() => SetStatusAsync(r.Id, PurchaseRequestStatus.Closed)">
+                                    Закрыть
+                                </button>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    private IReadOnlyList<PurchaseRequest>? _items;
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _items = await Requests.GetAllAsync();
+    }
+
+    private async Task SetStatusAsync(int id, PurchaseRequestStatus status)
+    {
+        await Requests.SetStatusAsync(id, status);
+        await LoadAsync();
+    }
+
+    private static string StatusLabel(PurchaseRequestStatus status) => status switch
+    {
+        PurchaseRequestStatus.New => "Новая",
+        PurchaseRequestStatus.Contacted => "Связались",
+        PurchaseRequestStatus.Closed => "Закрыта",
+        _ => status.ToString(),
+    };
+}

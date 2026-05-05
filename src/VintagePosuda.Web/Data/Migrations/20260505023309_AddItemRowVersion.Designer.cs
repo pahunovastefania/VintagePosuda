@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using VintagePosuda.Web.Data;
 
@@ -10,9 +11,11 @@ using VintagePosuda.Web.Data;
 namespace VintagePosuda.Web.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260505023309_AddItemRowVersion")]
+    partial class AddItemRowVersion
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "8.0.10");
@@ -405,50 +408,6 @@ namespace VintagePosuda.Web.Data.Migrations
                     b.ToTable("Materials", (string)null);
                 });
 
-            modelBuilder.Entity("VintagePosuda.Web.Models.PurchaseRequest", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("BuyerEmail")
-                        .HasMaxLength(120)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("BuyerName")
-                        .IsRequired()
-                        .HasMaxLength(80)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("BuyerPhone")
-                        .IsRequired()
-                        .HasMaxLength(40)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Comment")
-                        .HasMaxLength(500)
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("ItemId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("INTEGER");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CreatedAt");
-
-                    b.HasIndex("ItemId");
-
-                    b.HasIndex("Status");
-
-                    b.ToTable("PurchaseRequests", (string)null);
-                });
-
             modelBuilder.Entity("VintagePosuda.Web.Models.Tag", b =>
                 {
                     b.Property<int>("Id")
@@ -585,17 +544,6 @@ namespace VintagePosuda.Web.Data.Migrations
                     b.Navigation("Item");
 
                     b.Navigation("Tag");
-                });
-
-            modelBuilder.Entity("VintagePosuda.Web.Models.PurchaseRequest", b =>
-                {
-                    b.HasOne("VintagePosuda.Web.Models.Item", "Item")
-                        .WithMany()
-                        .HasForeignKey("ItemId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Item");
                 });
 
             modelBuilder.Entity("VintagePosuda.Web.Models.Category", b =>

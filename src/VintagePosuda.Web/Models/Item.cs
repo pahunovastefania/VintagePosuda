@@ -15,6 +15,8 @@ public class Item
     public int CategoryId { get; set; }
     public int MaterialId { get; set; }
 
+    public Guid RowVersion { get; set; } = Guid.NewGuid();
+
     public Manufacturer? Manufacturer { get; set; }
     public Category? Category { get; set; }
     public Material? Material { get; set; }
