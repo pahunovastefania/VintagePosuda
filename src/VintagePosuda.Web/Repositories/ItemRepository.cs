@@ -41,6 +41,9 @@ public class ItemRepository : Repository<Item>, IItemRepository
             q = q.Where(x => x.CategoryId == query.CategoryId);
         }
 
+        // SQLite не поддерживает case-insensitive поиск по кириллице через COLLATE NOCASE,
+        // поэтому текстовая фильтрация выполняется в памяти. Это узкое место при росте каталога:
+        // TODO: при переходе на Postgres заменить на ILIKE и перенести фильтр в SQL.
         var items = await q.OrderByDescending(x => x.CreatedAt).ToListAsync(ct);
 
         if (!string.IsNullOrWhiteSpace(query.NameContains))
@@ -57,6 +60,16 @@ public class ItemRepository : Repository<Item>, IItemRepository
             items = items
                 .Where(x => x.Manufacturer is not null && ContainsAllTerms(x.Manufacturer.Name, terms))
                 .ToList();
+        }
+
+        if (query.Skip is int skip && skip > 0)
+        {
+            items = items.Skip(skip).ToList();
+        }
+
+        if (query.Take is int take && take > 0)
+        {
+            items = items.Take(take).ToList();
         }
 
         return items;

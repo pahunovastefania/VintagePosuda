@@ -16,6 +16,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IMaterialService, MaterialService>();
         services.AddScoped<ITagService, TagService>();
         services.AddScoped<IReportService, ReportService>();
+        services.AddScoped<IPurchaseRequestService, PurchaseRequestService>();
 
         return services;
     }

@@ -11,12 +11,13 @@
 @inject IMaterialService Materials
 @inject ITagService Tags
 @inject NavigationManager Nav
+@inject ILogger<ItemForm> Logger
 
 <PageTitle>@(IsEdit ? "Редактирование" : "Новый предмет") · Магазин винтажной посуды</PageTitle>
 
 <nav aria-label="breadcrumb">
     <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="/">Каталог</a></li>
+        <li class="breadcrumb-item"><a href="/admin/catalog">Админ-каталог</a></li>
         @if (IsEdit && _model is not null)
         {
             <li class="breadcrumb-item"><a href="@($"/items/{Id}")">@_model.Name</a></li>
@@ -98,6 +99,34 @@ else
                 <InputTextArea class="form-control" rows="3" @bind-Value="_model.Description" />
             </div>
 
+            <div class="col-md-7">
+                <label class="form-label">Картинка товара</label>
+                <InputText class="form-control"
+                           placeholder="https://example.com/photo.jpg"
+                           @bind-Value="_photoUrl"
+                           @bind-Value:after="UpdatePrimaryPhoto" />
+                <div class="form-text">Укажите прямую ссылку на изображение товара.</div>
+            </div>
+            <div class="col-md-5">
+                <label class="form-label">Предпросмотр</label>
+                <div class="admin-photo-preview">
+                    @if (!string.IsNullOrWhiteSpace(_photoUrl))
+                    {
+                        <img src="@_photoUrl" alt="Предпросмотр изображения товара" />
+                    }
+                    else
+                    {
+                        <span>Картинка не выбрана</span>
+                    }
+                </div>
+                @if (!string.IsNullOrWhiteSpace(_photoUrl))
+                {
+                    <button type="button" class="btn btn-sm btn-outline-secondary mt-2" @onclick="ClearPhoto">
+                        Убрать картинку
+                    </button>
+                }
+            </div>
+
             <div class="col-md-6">
                 <label class="form-label">Происхождение</label>
                 <InputText class="form-control" @bind-Value="_model.Details!.Origin" />
@@ -159,6 +188,7 @@ else
     private bool _loading = true;
     private bool _saving;
     private string? _error;
+    private string? _photoUrl;
 
     private IReadOnlyList<Manufacturer> _manufacturers = Array.Empty<Manufacturer>();
     private IReadOnlyList<Category> _categories = Array.Empty<Category>();
@@ -182,6 +212,7 @@ else
             {
                 _model = existing;
                 _model.Details ??= new ItemDetails { ItemId = existing.Id };
+                _photoUrl = GetPrimaryPhotoUrl(existing);
                 _selectedTagIds = existing.ItemTags.Select(x => x.TagId).ToHashSet();
             }
         }
@@ -209,6 +240,32 @@ else
         }
     }
 
+    private void UpdatePrimaryPhoto()
+    {
+        if (_model is null)
+        {
+            return;
+        }
+
+        _model.Photos.Clear();
+
+        if (!string.IsNullOrWhiteSpace(_photoUrl))
+        {
+            _model.Photos.Add(new ItemPhoto
+            {
+                ItemId = _model.Id,
+                Url = _photoUrl.Trim(),
+                IsPrimary = true,
+            });
+        }
+    }
+
+    private void ClearPhoto()
+    {
+        _photoUrl = string.Empty;
+        UpdatePrimaryPhoto();
+    }
+
     private async Task SubmitAsync()
     {
         _error = null;
@@ -222,6 +279,8 @@ else
         _saving = true;
         try
         {
+            UpdatePrimaryPhoto();
+
             int id;
             if (IsEdit)
             {
@@ -235,9 +294,19 @@ else
 
             Nav.NavigateTo($"/items/{id}");
         }
+        catch (FluentValidation.ValidationException ex)
+        {
+            _error = string.Join(" ", ex.Errors.Select(e => e.ErrorMessage));
+        }
+        catch (InvalidOperationException ex)
+        {
+            Logger.LogWarning(ex, "Конфликт при сохранении предмета {ItemId}", _model?.Id);
+            _error = ex.Message;
+        }
         catch (Exception ex)
         {
-            _error = "Не удалось сохранить: " + ex.Message;
+            Logger.LogError(ex, "Ошибка при сохранении предмета {ItemId}", _model?.Id);
+            _error = "Не удалось сохранить предмет. Попробуйте ещё раз или обратитесь к администратору.";
         }
         finally
         {
@@ -253,7 +322,14 @@ else
         }
         else
         {
-            Nav.NavigateTo("/");
+            Nav.NavigateTo("/admin/catalog");
         }
     }
+
+    private static string? GetPrimaryPhotoUrl(Item item)
+        => item.Photos
+            .OrderByDescending(photo => photo.IsPrimary)
+            .ThenBy(photo => photo.Id)
+            .Select(photo => photo.Url)
+            .FirstOrDefault();
 }

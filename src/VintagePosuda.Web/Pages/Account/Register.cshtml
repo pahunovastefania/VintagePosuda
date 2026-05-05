@@ -1,12 +1,15 @@
 @page "/Account/Register"
 @model VintagePosuda.Web.Pages.Account.RegisterModel
 @{
-    ViewData["Title"] = "Регистрация";
+    ViewData["Title"] = "Создание менеджера";
 }
 
 <div class="row justify-content-center">
     <div class="col-md-6 col-lg-5">
-        <h1 class="mb-4">Регистрация</h1>
+        <h1 class="mb-4">Создание менеджера</h1>
+        <p class="text-muted">
+            Новый пользователь получит роль «Manager» и сможет управлять каталогом.
+        </p>
 
         @if (Model.Errors.Any())
         {
@@ -45,8 +48,8 @@
                 <span asp-validation-for="Input.ConfirmPassword" class="text-danger"></span>
             </div>
 
-            <button type="submit" class="btn btn-primary">Зарегистрироваться</button>
-            <a href="/Account/Login" class="btn btn-link">Уже есть аккаунт? Войти</a>
+            <button type="submit" class="btn btn-primary">Создать менеджера</button>
+            <a href="/admin/catalog" class="btn btn-link">Отмена</a>
         </form>
     </div>
 </div>

@@ -51,12 +51,19 @@ public class LoginModel : PageModel
             Input.Email,
             Input.Password,
             Input.RememberMe,
-            lockoutOnFailure: false);
+            lockoutOnFailure: true);
 
         if (result.Succeeded)
         {
             _logger.LogInformation("Пользователь {Email} вошёл в систему.", Input.Email);
             return LocalRedirect(ReturnUrl);
+        }
+
+        if (result.IsLockedOut)
+        {
+            _logger.LogWarning("Аккаунт {Email} заблокирован после серии неудачных попыток.", Input.Email);
+            ErrorMessage = "Слишком много неудачных попыток. Аккаунт временно заблокирован.";
+            return Page();
         }
 
         ErrorMessage = "Неверный email или пароль.";

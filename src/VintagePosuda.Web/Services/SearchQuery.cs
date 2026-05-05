@@ -9,4 +9,7 @@ public class SearchQuery
     public ItemStatus? Status { get; set; }
     public int? ManufacturerId { get; set; }
     public int? CategoryId { get; set; }
+
+    public int? Skip { get; set; }
+    public int? Take { get; set; }
 }

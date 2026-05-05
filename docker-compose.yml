@@ -15,8 +15,9 @@ services:
     environment:
       # Переопределяем строку подключения, чтобы база лежала в volume.
       ConnectionStrings__DefaultConnection: "Data Source=/app/data/app.db"
-      AdminUser__Email: "${ADMIN_EMAIL:-admin@vintage.local}"
-      AdminUser__Password: "${ADMIN_PASSWORD:-Admin123}"
+      # Учётка администратора. Задайте в .env (см. .env.example) — без значения по умолчанию.
+      AdminUser__Email: "${ADMIN_EMAIL:?ADMIN_EMAIL не задан в .env}"
+      AdminUser__Password: "${ADMIN_PASSWORD:?ADMIN_PASSWORD не задан в .env}"
       AdminUser__FullName: "${ADMIN_FULL_NAME:-Администратор}"
       ASPNETCORE_ENVIRONMENT: "Production"
     volumes:

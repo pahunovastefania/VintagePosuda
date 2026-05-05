@@ -10,7 +10,7 @@ public class ItemServiceTests : IDisposable
         _connection = TestDbFactory.CreateOpenConnection();
         _db = TestDbFactory.CreateDb(_connection);
         TestDbFactory.Seed(_db);
-        _sut = new ItemService(new ItemRepository(_db), _db);
+        _sut = new ItemService(new ItemRepository(_db), _db, new ItemValidator());
     }
 
     [Fact]
@@ -66,6 +66,35 @@ public class ItemServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task CreateAsync_WithPhoto_SavesPrimaryPhoto()
+    {
+        var manufacturer = await _db.Manufacturers.FirstAsync();
+        var category = await _db.Categories.FirstAsync();
+        var material = await _db.Materials.FirstAsync();
+
+        var item = new Item
+        {
+            Name = "Предмет с фото",
+            Price = 100m,
+            ManufacturerId = manufacturer.Id,
+            CategoryId = category.Id,
+            MaterialId = material.Id,
+            Details = new ItemDetails { Condition = "Good" },
+        };
+        item.Photos.Add(new ItemPhoto
+        {
+            Url = "https://example.test/new-photo.jpg",
+            IsPrimary = true,
+        });
+
+        int id = await _sut.CreateAsync(item);
+
+        var photo = await _db.ItemPhotos.AsNoTracking().SingleAsync(x => x.ItemId == id);
+        photo.Url.Should().Be("https://example.test/new-photo.jpg");
+        photo.IsPrimary.Should().BeTrue();
+    }
+
+    [Fact]
     public async Task UpdateAsync_ChangesEditableFields_AndDetails()
     {
         var existing = await _db.Items
@@ -90,12 +119,101 @@ public class ItemServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task UpdateAsync_ReplacesPrimaryPhoto()
+    {
+        var existing = await _db.Items
+            .Include(x => x.Photos)
+            .FirstAsync(x => x.Name == "Чайная пара Кобальт");
+
+        existing.Photos.Clear();
+        existing.Photos.Add(new ItemPhoto
+        {
+            Url = "https://example.test/updated-photo.jpg",
+            IsPrimary = true,
+        });
+
+        await _sut.UpdateAsync(existing);
+
+        var photos = await _db.ItemPhotos.AsNoTracking()
+            .Where(x => x.ItemId == existing.Id)
+            .ToListAsync();
+        photos.Should().ContainSingle();
+        photos.Single().Url.Should().Be("https://example.test/updated-photo.jpg");
+        photos.Single().IsPrimary.Should().BeTrue();
+    }
+
+    [Fact]
     public async Task UpdateAsync_UnknownItem_Throws()
     {
-        var ghost = new Item { Id = 99999, Name = "Призрак" };
+        var manufacturer = await _db.Manufacturers.FirstAsync();
+        var category = await _db.Categories.FirstAsync();
+        var material = await _db.Materials.FirstAsync();
+
+        var ghost = new Item
+        {
+            Id = 99999,
+            Name = "Призрак",
+            Price = 100m,
+            ManufacturerId = manufacturer.Id,
+            CategoryId = category.Id,
+            MaterialId = material.Id,
+            Details = new ItemDetails { Condition = "Good" },
+        };
 
         var act = async () => await _sut.UpdateAsync(ghost);
         await act.Should().ThrowAsync<InvalidOperationException>();
+    }
+
+    [Fact]
+    public async Task CreateAsync_WithInvalidItem_ThrowsValidationException()
+    {
+        var invalid = new Item
+        {
+            Name = "",
+            Price = 0m,
+            ManufacturerId = 0,
+            CategoryId = 0,
+            MaterialId = 0,
+        };
+
+        var act = async () => await _sut.CreateAsync(invalid);
+        await act.Should().ThrowAsync<FluentValidation.ValidationException>();
+    }
+
+    [Fact]
+    public async Task UpdateAsync_StaleRowVersion_ThrowsConcurrencyException()
+    {
+        var manufacturer = await _db.Manufacturers.FirstAsync();
+        var category = await _db.Categories.FirstAsync();
+        var material = await _db.Materials.FirstAsync();
+
+        var freshItem = new Item
+        {
+            Name = "Конкурентный предмет",
+            Price = 500m,
+            ManufacturerId = manufacturer.Id,
+            CategoryId = category.Id,
+            MaterialId = material.Id,
+            Details = new ItemDetails { Condition = "Good" },
+        };
+        int id = await _sut.CreateAsync(freshItem);
+
+        using var connection2 = TestDbFactory.CreateOpenConnection();
+        var staleSnapshot = new Item
+        {
+            Id = id,
+            Name = "Конкурентный предмет (старая версия)",
+            Price = 500m,
+            ManufacturerId = manufacturer.Id,
+            CategoryId = category.Id,
+            MaterialId = material.Id,
+            RowVersion = Guid.NewGuid(),
+            Details = new ItemDetails { Condition = "Good" },
+        };
+
+        var act = async () => await _sut.UpdateAsync(staleSnapshot);
+        var assertion = await act.Should().ThrowAsync<InvalidOperationException>();
+        assertion.Which.Message.Should().Contain("изменён другим пользователем");
     }
 
     [Fact]

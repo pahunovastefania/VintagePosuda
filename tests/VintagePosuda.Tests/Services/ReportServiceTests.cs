@@ -40,4 +40,60 @@ public class ReportServiceTests
         report.TotalPrice.Should().Be(0m);
         repoMock.Verify(r => r.GetByStatusAsync(ItemStatus.Sold, It.IsAny<CancellationToken>()), Times.Once);
     }
+
+    [Fact]
+    public async Task GetInStockReportAsync_EmptyRepository_ReturnsZeros()
+    {
+        var repoMock = new Mock<IItemRepository>();
+        repoMock
+            .Setup(r => r.GetByStatusAsync(ItemStatus.InStock, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<Item>());
+
+        var sut = new ReportService(repoMock.Object);
+
+        var report = await sut.GetInStockReportAsync();
+
+        report.Items.Should().BeEmpty();
+        report.TotalCount.Should().Be(0);
+        report.TotalPrice.Should().Be(0m);
+    }
+
+    [Fact]
+    public async Task GetSoldReportAsync_AggregatesSoldPrices()
+    {
+        var items = new[]
+        {
+            new Item { Id = 1, Name = "A", Price = 1000m, Status = ItemStatus.Sold },
+            new Item { Id = 2, Name = "B", Price = 2500m, Status = ItemStatus.Sold },
+            new Item { Id = 3, Name = "C", Price = 500m, Status = ItemStatus.Sold },
+        };
+        var repoMock = new Mock<IItemRepository>();
+        repoMock
+            .Setup(r => r.GetByStatusAsync(ItemStatus.Sold, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(items);
+
+        var sut = new ReportService(repoMock.Object);
+
+        var report = await sut.GetSoldReportAsync();
+
+        report.Items.Should().HaveCount(3);
+        report.TotalCount.Should().Be(3);
+        report.TotalPrice.Should().Be(4000m);
+    }
+
+    [Fact]
+    public async Task GetInStockReportAsync_PassesCancellationToken()
+    {
+        using var cts = new CancellationTokenSource();
+        var repoMock = new Mock<IItemRepository>();
+        repoMock
+            .Setup(r => r.GetByStatusAsync(ItemStatus.InStock, cts.Token))
+            .ReturnsAsync(Array.Empty<Item>());
+
+        var sut = new ReportService(repoMock.Object);
+
+        await sut.GetInStockReportAsync(cts.Token);
+
+        repoMock.Verify(r => r.GetByStatusAsync(ItemStatus.InStock, cts.Token), Times.Once);
+    }
 }
